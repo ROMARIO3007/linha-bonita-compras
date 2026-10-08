@@ -12,8 +12,8 @@
 <div><label>Solicitante *</label><input id="sol" required></div><div><label>CNPJ</label><input id="cnpj" class="readonly" readonly></div><div><label>Endereço</label><input id="end" class="readonly" readonly></div>
 <div class="full"><label>Materiais ou serviços *</label><div id="items"></div><button type="button" class="btn add" id="add">+ Adicionar item</button></div>
 <div><label>Urgência</label><select id="urg"><option>Normal</option><option>Urgente</option><option>Muito urgente</option></select></div><div><label>Necessário para</label><input id="data" type="date"></div>
-<div class="full"><label>Observações</label><textarea id="obs"></textarea></div><div class="full"><label>Anexo</label><input id="file" type="file"><div class="muted">O nome do arquivo fica registrado nesta versão.</div></div></div>
-<div class="actions"><button class="btn" type="submit">Enviar solicitação</button></div></form></div></section>
+<div class="full"><label>Observações</label><textarea id="obs"></textarea></div><div class="full"><label>Anexo</label><input id="file" type="file"><div class="muted">Somente o nome do arquivo fica registrado. Para enviar o anexo, compartilhe o arquivo separadamente pelo WhatsApp.</div></div></div>
+<div class="actions"><button class="btn" type="submit">Enviar solicitação pelo WhatsApp</button></div><p class="muted">O WhatsApp abrirá com a mensagem pronta. Confirme o envio no aplicativo. O pedido também será salvo no histórico deste navegador.</p><p id="avisoWhats" class="hidden"><a id="linkWhats" target="_blank" rel="noopener">Se o WhatsApp não abrir, clique aqui para enviar o pedido.</a></p></form></div></section>
 <section id="hist" class="panel"><div class="card"><h2>Histórico</h2><div class="table"><table><thead><tr><th>#</th><th>Data</th><th>Obra</th><th>Solicitante</th><th>Itens</th><th>Urgência</th><th>Status</th></tr></thead><tbody id="hb"></tbody></table></div></div></section>
 <section id="adm" class="panel"><div id="login" class="card"><h2>Área de Compras</h2><label>Usuário</label><input id="user"><label>Senha</label><input id="pass" type="password"><div class="actions"><button class="btn" id="entrar" type="button">Entrar</button></div><p id="msg"></p></div><div id="area" class="card hidden"><h2>Solicitações recebidas</h2><button id="sair">Sair</button><div class="table"><table><thead><tr><th>#</th><th>Obra</th><th>Solicitante</th><th>Itens</th><th>Status / Ações</th></tr></thead><tbody id="ab"></tbody></table></div></div></section>
 </main><script>
@@ -25,7 +25,23 @@ function add(){$('items').appendChild(row())}$('add').onclick=add;add();
 $('obra').onchange=()=>{let x=O[$('obra').value]||['',''];$('cnpj').value=x[0];$('end').value=x[1]};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.p).classList.add('active');render()});
 function save(){localStorage.setItem(KEY,JSON.stringify(d))}function list(x){return x.itens.map(i=>'<div><b>'+E(i.nome)+'</b> — '+E(i.qtd)+' '+E(i.un)+'</div>').join('')}
-$('form').onsubmit=e=>{e.preventDefault();let itens=[...document.querySelectorAll('.item')].map(x=>({nome:x.querySelector('.i').value.trim(),qtd:x.querySelector('.q').value.trim(),un:x.querySelector('.u').value}));d.unshift({id:String(Date.now()).slice(-6),dt:new Date().toLocaleString('pt-BR'),obra:$('obra').value,sol:$('sol').value.trim(),itens,urg:$('urg').value,data:$('data').value,obs:$('obs').value.trim(),file:$('file').files[0]?.name||'',status:'Pendente'});save();e.target.reset();$('cnpj').value=$('end').value='';$('items').innerHTML='';add();alert('Solicitação enviada com sucesso!');render()};
+const WHATSAPP='5554996586654';
+function mensagemWhatsApp(p){
+ const obra=O[p.obra]||['',''];
+ return ['*NOVA SOLICITAÇÃO DE COMPRAS*',`*Pedido:* ${p.id}`,`*Data:* ${p.dt}`,`*Obra:* ${p.obra}`,`*CNPJ:* ${obra[0]}`,`*Endereço:* ${obra[1]}`,`*Solicitante:* ${p.sol}`,'', '*MATERIAIS / SERVIÇOS*',...p.itens.map((i,n)=>`${n+1}. ${i.nome} — ${i.qtd} ${i.un}`),'',`*Urgência:* ${p.urg}`,`*Necessário para:* ${p.data?p.data.split('-').reverse().join('/'): 'Não informado'}`,`*Observações:* ${p.obs||'Nenhuma'}`,`*Anexo informado:* ${p.file||'Nenhum'}`].join('\n');
+}
+$('form').onsubmit=e=>{
+ e.preventDefault();
+ let itens=[...document.querySelectorAll('.item')].map(x=>({nome:x.querySelector('.i').value.trim(),qtd:x.querySelector('.q').value.trim(),un:x.querySelector('.u').value}));
+ let pedido={id:String(Date.now()).slice(-6),dt:new Date().toLocaleString('pt-BR'),obra:$('obra').value,sol:$('sol').value.trim(),itens,urg:$('urg').value,data:$('data').value,obs:$('obs').value.trim(),file:$('file').files[0]?.name||'',status:'Pendente'};
+ const url='https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(mensagemWhatsApp(pedido));
+ d.unshift(pedido);save();render();
+ $('avisoWhats').classList.remove('hidden');
+ $('linkWhats').href=url;
+ // A navegação é iniciada diretamente pelo clique de envio, evitando bloqueio de pop-ups.
+ window.location.href=url;
+ e.target.reset();$('cnpj').value=$('end').value='';$('items').innerHTML='';add();
+};
 function admin(){return sessionStorage.getItem(SESSION)==='1'}function sync(){$('login').classList.toggle('hidden',admin());$('area').classList.toggle('hidden',!admin())}
 function render(){$('hb').innerHTML=d.map(x=>'<tr><td>'+E(x.id)+'</td><td>'+E(x.dt)+'</td><td>'+E(x.obra)+'</td><td>'+E(x.sol)+'</td><td>'+list(x)+'</td><td>'+E(x.urg)+'</td><td>'+E(x.status)+'</td></tr>').join('')||'<tr><td colspan="7">Nenhuma solicitação.</td></tr>';if(admin())$('ab').innerHTML=d.map((x,i)=>'<tr><td>'+E(x.id)+'</td><td>'+E(x.obra)+'</td><td>'+E(x.sol)+'</td><td>'+list(x)+'</td><td><select onchange="st('+i+',this.value)"><option>Pendente</option><option>Em cotação</option><option>Comprado</option><option>Concluído</option></select> <button onclick="del('+i+')">Excluir</button></td></tr>').join('');sync()}
 $('entrar').onclick=()=>{if($('user').value===USER&&$('pass').value===PASS){sessionStorage.setItem(SESSION,'1');$('msg').textContent='';render()}else $('msg').textContent='Usuário ou senha incorretos.'};$('sair').onclick=()=>{sessionStorage.removeItem(SESSION);sync()};window.st=(i,v)=>{d[i].status=v;save();render()};window.del=i=>{if(confirm('Excluir solicitação?')){d.splice(i,1);save();render()}};render();
