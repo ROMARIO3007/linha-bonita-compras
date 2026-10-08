@@ -13,36 +13,65 @@
 <div class="full"><label>Materiais ou serviços *</label><div id="items"></div><button type="button" class="btn add" id="add">+ Adicionar item</button></div>
 <div><label>Urgência</label><select id="urg"><option>Normal</option><option>Urgente</option><option>Muito urgente</option></select></div><div><label>Necessário para</label><input id="data" type="date"></div>
 <div class="full"><label>Observações</label><textarea id="obs"></textarea></div><div class="full"><label>Anexo</label><input id="file" type="file"><div class="muted">Somente o nome do arquivo fica registrado. Para enviar o anexo, compartilhe o arquivo separadamente pelo WhatsApp.</div></div></div>
-<div class="actions"><button class="btn" type="submit">Enviar solicitação pelo WhatsApp</button></div><p class="muted">O WhatsApp abrirá com a mensagem pronta. Confirme o envio no aplicativo. O pedido também será salvo no histórico deste navegador.</p><p id="avisoWhats" class="hidden"><a id="linkWhats" target="_blank" rel="noopener">Se o WhatsApp não abrir, clique aqui para enviar o pedido.</a></p></form></div></section>
-<section id="hist" class="panel"><div class="card"><h2>Histórico</h2><div class="table"><table><thead><tr><th>#</th><th>Data</th><th>Obra</th><th>Solicitante</th><th>Itens</th><th>Urgência</th><th>Status</th></tr></thead><tbody id="hb"></tbody></table></div></div></section>
-<section id="adm" class="panel"><div id="login" class="card"><h2>Área de Compras</h2><label>Usuário</label><input id="user"><label>Senha</label><input id="pass" type="password"><div class="actions"><button class="btn" id="entrar" type="button">Entrar</button></div><p id="msg"></p></div><div id="area" class="card hidden"><h2>Solicitações recebidas</h2><button id="sair">Sair</button><div class="table"><table><thead><tr><th>#</th><th>Obra</th><th>Solicitante</th><th>Itens</th><th>Status / Ações</th></tr></thead><tbody id="ab"></tbody></table></div></div></section>
-</main><script>
-const KEY='LB_COMPRAS_V3',SESSION='LB_ADMIN',USER='compras',PASS='LinhaBonita2026';
-const O={'Amélia Boelter':['23.199.531/0003-12','Rua Aracaju, 163 - Moura - Gramado/RS - CEP 95670-000'],'Elis Rosenfeld':['23.199.531/0002-31','Av. Borges de Medeiros, 4370 - Moura - Gramado/RS - CEP 95670-000'],'Ellida':['23.199.531/0004-01','Rua Aracaju, 87 - Moura - Gramado/RS - CEP 95671-864'],'Versa':['57.286.804/0001-16','Rua AABB, 67 - Gramado/RS']};
-const $=x=>document.getElementById(x),E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let d=JSON.parse(localStorage.getItem(KEY)||'[]');
-function row(){let x=document.createElement('div');x.className='item';x.innerHTML='<div class="desc"><label>Material ou serviço</label><input class="i" required></div><div><label>Quantidade</label><input class="q" required></div><div><label>Unidade</label><select class="u"><option>un</option><option>m²</option><option>m³</option><option>kg</option><option>saco</option><option>caixa</option><option>serviço</option></select></div><button type="button" class="remove">×</button>';x.querySelector('.remove').onclick=()=>{$('items').children.length>1?x.remove():alert('Precisa ter pelo menos um item.')};return x}
-function add(){$('items').appendChild(row())}$('add').onclick=add;add();
-$('obra').onchange=()=>{let x=O[$('obra').value]||['',''];$('cnpj').value=x[0];$('end').value=x[1]};
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.p).classList.add('active');render()});
-function save(){localStorage.setItem(KEY,JSON.stringify(d))}function list(x){return x.itens.map(i=>'<div><b>'+E(i.nome)+'</b> — '+E(i.qtd)+' '+E(i.un)+'</div>').join('')}
-const WHATSAPP='5554996586654';
-function mensagemWhatsApp(p){
- const obra=O[p.obra]||['',''];
- return ['*NOVA SOLICITAÇÃO DE COMPRAS*',`*Pedido:* ${p.id}`,`*Data:* ${p.dt}`,`*Obra:* ${p.obra}`,`*CNPJ:* ${obra[0]}`,`*Endereço:* ${obra[1]}`,`*Solicitante:* ${p.sol}`,'', '*MATERIAIS / SERVIÇOS*',...p.itens.map((i,n)=>`${n+1}. ${i.nome} — ${i.qtd} ${i.un}`),'',`*Urgência:* ${p.urg}`,`*Necessário para:* ${p.data?p.data.split('-').reverse().join('/'): 'Não informado'}`,`*Observações:* ${p.obs||'Nenhuma'}`,`*Anexo informado:* ${p.file||'Nenhum'}`].join('\n');
-}
-$('form').onsubmit=e=>{
- e.preventDefault();
- let itens=[...document.querySelectorAll('.item')].map(x=>({nome:x.querySelector('.i').value.trim(),qtd:x.querySelector('.q').value.trim(),un:x.querySelector('.u').value}));
- let pedido={id:String(Date.now()).slice(-6),dt:new Date().toLocaleString('pt-BR'),obra:$('obra').value,sol:$('sol').value.trim(),itens,urg:$('urg').value,data:$('data').value,obs:$('obs').value.trim(),file:$('file').files[0]?.name||'',status:'Pendente'};
- const url='https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(mensagemWhatsApp(pedido));
- d.unshift(pedido);save();render();
- $('avisoWhats').classList.remove('hidden');
- $('linkWhats').href=url;
- // A navegação é iniciada diretamente pelo clique de envio, evitando bloqueio de pop-ups.
- window.location.href=url;
- e.target.reset();$('cnpj').value=$('end').value='';$('items').innerHTML='';add();
+<div class="actions"><button class="btn" type="submit">Enviar solicitação pelo WhatsApp</button></div><p class="muted">O WhatsApp abrirá com a mensagem pronta. Confirme o envio no aplicativo. O pedido será registrado no histórico compartilhado antes de abrir o WhatsApp.</p><p id="avisoWhats" class="hidden"><a id="linkWhats" target="_blank" rel="noopener">Se o WhatsApp não abrir, clique aqui para enviar o pedido.</a></p></form></div></section>
+<section id="hist" class="panel"><div class="card"><h2>Histórico</h2><p class="muted" id="histStatus">Conectando ao histórico compartilhado...</p><div class="table"><table><thead><tr><th>#</th><th>Data</th><th>Obra</th><th>Solicitante</th><th>Itens</th><th>Urgência</th><th>Status</th></tr></thead><tbody id="hb"></tbody></table></div></div></section>
+<section id="adm" class="panel"><div id="login" class="card"><h2>Área de Compras</h2><label>Usuário</label><input id="user" type="email" autocomplete="username" value="compras@incorporadoralinhabonita.com.br"><label>Senha</label><input id="pass" type="password"><div class="actions"><button class="btn" id="entrar" type="button">Entrar</button></div><p id="msg"></p></div><div id="area" class="card hidden"><h2>Solicitações recebidas</h2><button id="sair" type="button">Sair</button><p class="muted" id="adminStatus"></p><div class="table"><table><thead><tr><th>#</th><th>Obra</th><th>Solicitante</th><th>Itens</th><th>Status / Ações</th></tr></thead><tbody id="ab"></tbody></table></div></div></section>
+</main><script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js';
+const firebaseConfig = {
+  apiKey: 'AIzaSyDq6pIVYi_IpdLKxpkdsbc7KmE349xdwk4',
+  authDomain: 'compras-inc-linha-bonita.firebaseapp.com',
+  projectId: 'compras-inc-linha-bonita',
+  storageBucket: 'compras-inc-linha-bonita.firebasestorage.app',
+  messagingSenderId: '155945204371',
+  appId: '1:155945204371:web:7aa3293b3e4bd00081ab66'
 };
-function admin(){return sessionStorage.getItem(SESSION)==='1'}function sync(){$('login').classList.toggle('hidden',admin());$('area').classList.toggle('hidden',!admin())}
-function render(){$('hb').innerHTML=d.map(x=>'<tr><td>'+E(x.id)+'</td><td>'+E(x.dt)+'</td><td>'+E(x.obra)+'</td><td>'+E(x.sol)+'</td><td>'+list(x)+'</td><td>'+E(x.urg)+'</td><td>'+E(x.status)+'</td></tr>').join('')||'<tr><td colspan="7">Nenhuma solicitação.</td></tr>';if(admin())$('ab').innerHTML=d.map((x,i)=>'<tr><td>'+E(x.id)+'</td><td>'+E(x.obra)+'</td><td>'+E(x.sol)+'</td><td>'+list(x)+'</td><td><select onchange="st('+i+',this.value)"><option>Pendente</option><option>Em cotação</option><option>Comprado</option><option>Concluído</option></select> <button onclick="del('+i+')">Excluir</button></td></tr>').join('');sync()}
-$('entrar').onclick=()=>{if($('user').value===USER&&$('pass').value===PASS){sessionStorage.setItem(SESSION,'1');$('msg').textContent='';render()}else $('msg').textContent='Usuário ou senha incorretos.'};$('sair').onclick=()=>{sessionStorage.removeItem(SESSION);sync()};window.st=(i,v)=>{d[i].status=v;save();render()};window.del=i=>{if(confirm('Excluir solicitação?')){d.splice(i,1);save();render()}};render();
+const app=initializeApp(firebaseConfig), db=getFirestore(app), auth=getAuth(app);
+const ADMIN_UID='VbBqPUn0mOabgWHf7fvFhVBHJUg2';
+const O={'Amélia Boelter':['23.199.531/0003-12','Rua Aracaju, 163 - Moura - Gramado/RS - CEP 95670-000'],'Elis Rosenfeld':['23.199.531/0002-31','Av. Borges de Medeiros, 4370 - Moura - Gramado/RS - CEP 95670-000'],'Ellida':['23.199.531/0004-01','Rua Aracaju, 87 - Moura - Gramado/RS - CEP 95671-864'],'Versa':['57.286.804/0001-16','Rua AABB, 67 - Gramado/RS']};
+const $=id=>document.getElementById(id);
+const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const WHATSAPP='5554996586654';
+let pedidos=[], conectado=false, ocupado=false;
+function row(){const x=document.createElement('div');x.className='item';x.innerHTML='<div class="desc"><label>Material ou serviço</label><input class="i" required maxlength="200"></div><div><label>Quantidade</label><input class="q" required maxlength="60"></div><div><label>Unidade</label><select class="u"><option>un</option><option>m²</option><option>m³</option><option>kg</option><option>saco</option><option>caixa</option><option>serviço</option></select></div><button type="button" class="remove">×</button>';x.querySelector('.remove').onclick=()=>{$('items').children.length>1?x.remove():alert('Precisa ter pelo menos um item.')};return x}
+function add(){$('items').appendChild(row())} $('add').onclick=add;add();
+$('obra').onchange=()=>{const x=O[$('obra').value]||['',''];$('cnpj').value=x[0];$('end').value=x[1]};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.p).classList.add('active');render()});
+function admin(){return auth.currentUser?.uid===ADMIN_UID}
+function sync(){$('login').classList.toggle('hidden',admin());$('area').classList.toggle('hidden',!admin())}
+function list(x){return (x.itens||[]).map(i=>'<div><b>'+E(i.nome)+'</b> — '+E(i.qtd)+' '+E(i.un)+'</div>').join('')}
+function render(){
+ $('hb').innerHTML=pedidos.map(x=>'<tr><td>'+E(x.id)+'</td><td>'+E(x.dt)+'</td><td>'+E(x.obra)+'</td><td>'+E(x.sol)+'</td><td>'+list(x)+'</td><td>'+E(x.urg)+'</td><td>'+E(x.status)+'</td></tr>').join('')||'<tr><td colspan="7">'+(conectado?'Nenhuma solicitação registrada.':'Histórico indisponível. Confira a conexão e as regras do Firebase.')+'</td></tr>';
+ if(admin()){
+  $('ab').innerHTML=pedidos.map(x=>'<tr><td>'+E(x.id)+'</td><td>'+E(x.obra)+'</td><td>'+E(x.sol)+'</td><td>'+list(x)+'</td><td><select data-id="'+E(x.docId)+'" class="status"><option '+(x.status==='Pendente'?'selected':'')+'>Pendente</option><option '+(x.status==='Em cotação'?'selected':'')+'>Em cotação</option><option '+(x.status==='Comprado'?'selected':'')+'>Comprado</option><option '+(x.status==='Concluído'?'selected':'')+'>Concluído</option></select> <button type="button" data-id="'+E(x.docId)+'" class="excluir">Excluir</button></td></tr>').join('');
+  document.querySelectorAll('.status').forEach(el=>el.onchange=async()=>{try{await updateDoc(doc(db,'pedidos',el.dataset.id),{status:el.value})}catch(e){alert('Não foi possível alterar: '+e.message);render()}});
+  document.querySelectorAll('.excluir').forEach(el=>el.onclick=async()=>{if(confirm('Excluir esta solicitação permanentemente?'))try{await deleteDoc(doc(db,'pedidos',el.dataset.id))}catch(e){alert('Não foi possível excluir: '+e.message)}});
+ }
+ sync();
+}
+function mensagemWhatsApp(p){const obra=O[p.obra]||['',''];return ['*NOVA SOLICITAÇÃO DE COMPRAS*',`*Pedido:* ${p.id}`,`*Data:* ${p.dt}`,`*Obra:* ${p.obra}`,`*CNPJ:* ${obra[0]}`,`*Endereço:* ${obra[1]}`,`*Solicitante:* ${p.sol}`,'','*MATERIAIS / SERVIÇOS*',...p.itens.map((i,n)=>`${n+1}. ${i.nome} — ${i.qtd} ${i.un}`),'',`*Urgência:* ${p.urg}`,`*Necessário para:* ${p.data?p.data.split('-').reverse().join('/'):'Não informado'}`,`*Observações:* ${p.obs||'Nenhuma'}`,`*Anexo informado:* ${p.file||'Nenhum'}`].join('\n')}
+$('form').onsubmit=async e=>{
+ e.preventDefault();if(ocupado)return;
+ if(!conectado){alert('Não foi possível conectar ao histórico compartilhado. Aguarde ou verifique as regras do Firebase.');return}
+ const itens=[...document.querySelectorAll('.item')].map(x=>({nome:x.querySelector('.i').value.trim(),qtd:x.querySelector('.q').value.trim(),un:x.querySelector('.u').value}));
+ if(!itens.length||itens.some(i=>!i.nome||!i.qtd))return;
+ const pedido={id:String(Date.now()),dt:new Date().toLocaleString('pt-BR'),obra:$('obra').value,sol:$('sol').value.trim(),itens,urg:$('urg').value,data:$('data').value,obs:$('obs').value.trim(),file:$('file').files[0]?.name||'',status:'Pendente'};
+ const url='https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(mensagemWhatsApp(pedido));
+ const botao=e.submitter||$('form').querySelector('[type=submit]');ocupado=true;botao.disabled=true;botao.textContent='Salvando pedido...';
+ try{
+  await addDoc(collection(db,'pedidos'),{...pedido,criadoEm:serverTimestamp()});
+  $('avisoWhats').classList.remove('hidden');$('linkWhats').href=url;
+  e.target.reset();$('cnpj').value=$('end').value='';$('items').innerHTML='';add();
+  // Navegação após gravação pode ser bloqueada em alguns navegadores: o link permanece visível.
+  window.location.assign(url);
+ }catch(err){alert('O pedido NÃO foi registrado. Tente novamente. Detalhes: '+err.message)}
+ finally{ocupado=false;botao.disabled=false;botao.textContent='Enviar solicitação pelo WhatsApp'}
+};
+$('entrar').onclick=async()=>{const email=$('user').value.trim(),senha=$('pass').value;$('msg').textContent='Entrando...';try{const r=await signInWithEmailAndPassword(auth,email,senha);if(r.user.uid!==ADMIN_UID){await signOut(auth);$('msg').textContent='Este usuário não é administrador.'}else{$('msg').textContent='';$('pass').value='';render()}}catch(err){$('msg').textContent='Não foi possível entrar. Verifique e-mail e senha.'}};
+$('sair').onclick=()=>signOut(auth);
+onAuthStateChanged(auth,()=>render());
+onSnapshot(query(collection(db,'pedidos'),orderBy('dt','desc')),snap=>{conectado=true;pedidos=snap.docs.map(x=>({...x.data(),docId:x.id})).sort((a,b)=>Number(b.id)-Number(a.id));$('histStatus').textContent='Histórico compartilhado atualizado automaticamente.';render()},err=>{conectado=false;$('histStatus').textContent='Não foi possível carregar o histórico. Verifique as regras do Firestore. ('+err.code+')';render()});
+render();
 </script></body></html>
